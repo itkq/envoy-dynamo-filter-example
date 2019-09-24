@@ -1,0 +1,50 @@
+version: '3'
+services:
+  app:
+    environment:
+    - 'BACKEND_URL=http://envoy'
+    - 'BACKEND_HOST=backend'
+    - 'DYNAMODB_ENDPOINT=http://envoy:81/dynamodb'
+    # - 'DYNAMODB_TABLE_NAME=test-table'
+    - 'AWS_ACCESS_KEY_ID'
+    - 'AWS_SECRET_ACCESS_KEY'
+    build:
+      context: './app'
+    ports:
+      - '4567:4567'
+    extra_hosts:
+      - 'envoy:192.168.224.4'
+    networks:
+      envoy_dynamodb_filter:
+        ipv4_address: '192.168.224.2'
+  backend:
+    build:
+      context: './backend'
+    networks:
+      envoy_dynamodb_filter:
+        ipv4_address: '192.168.224.3'
+  envoy:
+    # environment:
+    # - 'DEBUG=1'
+    build:
+      context: './envoy'
+    ports:
+      - '9901:9901'
+    networks:
+      envoy_dynamodb_filter:
+        ipv4_address: '192.168.224.4'
+  # tcpdump:
+  #   build:
+  #     context: 'docker-tcpdump'
+  #   volumes:
+  #     - '$PWD/data:/data'
+  #   sysctls:
+  #     - net.ipv6.conf.all.disable_ipv6=1
+  #   network_mode: 'service:envoy'
+  #   command: -v -w "/data/dump-envoy.pcap"
+networks:
+  envoy_dynamodb_filter:
+    driver: 'bridge'
+    ipam:
+      config:
+        - subnet: '192.168.224.0/24'
